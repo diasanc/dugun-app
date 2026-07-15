@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Düğün RSVP</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#FAF9F5;font-family:'Inter',sans-serif;color:#2C1F1F;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:20px;padding:32px 28px;max-width:430px;width:100%;box-shadow:0 6px 24px rgba(119,86,86,.10)}
+.icon{text-align:center;font-size:32px;margin-bottom:14px}
+h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#775656;text-align:center;margin-bottom:4px}
+.sub{text-align:center;font-size:13px;color:#9E8B8B;margin-bottom:8px}
+.date-wrap{text-align:center;margin-bottom:20px}
+.date-badge{font-size:12px;font-weight:600;color:#775656;background:#F5ECEC;border-radius:6px;padding:5px 14px}
+.divider{height:1px;background:#E2D8D8;margin:20px 0}
+.field{margin-bottom:20px}
+label.lbl{display:block;font-size:11px;font-weight:600;color:#9E8B8B;margin-bottom:6px;letter-spacing:.5px}
+input[type=text],input[type=tel]{width:100%;padding:12px 0;border:none;border-bottom:1.5px solid #E2D8D8;background:transparent;font-family:'Inter',sans-serif;font-size:14px;color:#2C1F1F;outline:none;transition:border-color .2s}
+input[type=text]:focus,input[type=tel]:focus{border-bottom-color:#775656}
+.rg{display:flex;gap:8px;flex-wrap:wrap}
+.ro input{display:none}
+.ro label{display:flex;align-items:center;gap:5px;padding:8px 14px;border:1.5px solid #E2D8D8;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#9E8B8B;transition:all .15s;user-select:none}
+.ro input:checked+label{background:#775656;border-color:#775656;color:#fff}
+.cpn{margin-bottom:20px;display:none}
+.cpn.show{display:block}
+input[type=number]{width:90px;padding:9px 12px;border:1.5px solid #E2D8D8;border-radius:8px;font-size:14px;color:#2C1F1F;font-family:'Inter',sans-serif;outline:none}
+input[type=number]:focus{border-color:#775656}
+.btn{width:100%;padding:16px;background:#775656;color:#fff;border:none;border-radius:4px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;letter-spacing:.8px;cursor:pointer;margin-top:8px;transition:opacity .15s}
+.btn:hover{opacity:.9}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{background:#FFEBEB;color:#B00020;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+.ok-circle{width:64px;height:64px;background:#E8F0E5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:28px}
+#loading{text-align:center;color:#9E8B8B;font-size:14px;padding:40px 0}
+</style>
+</head>
+<body>
+<div class="card" id="root">
+  <div id="loading">Yükleniyor…</div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://vwcochhjzdgiiczdvico.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3Y29jaGhqemRnaWljemR2aWNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NjU4NzMsImV4cCI6MjA5ODI0MTg3M30.yRMbjY6fU4GheyysEoZATyVItKZhc-1sbGozH7MHLGE';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const root = document.getElementById('root');
+const params = new URLSearchParams(window.location.search);
+const wid = params.get('wid') || '';
+
+function dbHeaders() {
+  return {
+    'apikey': SUPABASE_ANON,
+    'Authorization': 'Bearer ' + SUPABASE_ANON,
+    'Content-Type': 'application/json',
+  };
+}
+
+function fmtDate(d) {
+  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+  const [y, m, day] = d.split('-').map(Number);
+  return day + ' ' + months[m - 1] + ' ' + y;
+}
+
+function showError(msg) {
+  root.innerHTML = `
+    <div class="icon">⚠️</div>
+    <h1 style="color:#B00020">Hata</h1>
+    <p class="sub">${msg}</p>`;
+}
+
+function showSuccess(fullName, status) {
+  const msgs = {
+    attending: 'Düğünümüzde sizi görmek için sabırsızlanıyoruz! 🎉',
+    declined: 'Anlayışınız için teşekkür ederiz.',
+    maybe: 'Yanıtınızı ilettiğiniz için teşekkür ederiz.',
+  };
+  root.innerHTML = `
+    <div class="ok-circle">✓</div>
+    <h1>Teşekkürler!</h1>
+    <p class="sub" style="font-size:15px;margin-bottom:10px">${fullName}</p>
+    <p class="sub">${msgs[status] || 'Yanıtınız alındı.'}</p>
+    <div class="divider"></div>
+    <p style="text-align:center;font-size:13px;color:#9E8B8B">Bu sayfayı kapatabilirsiniz.</p>`;
+}
+
+function showForm(wedding) {
+  const title = wedding.title || 'Düğün';
+  const dateBadge = wedding.wedding_date
+    ? `<div class="date-wrap"><span class="date-badge">${fmtDate(wedding.wedding_date)}</span></div>`
+    : '';
+  document.title = title + ' — RSVP';
+
+  root.innerHTML = `
+    <div class="icon">💍</div>
+    <h1>${title}</h1>
+    <p class="sub">Düğünümüze katılımınızı bildirin</p>
+    ${dateBadge}
+    <div class="divider"></div>
+    <div id="err-box"></div>
+    <div class="field">
+      <label class="lbl">AD SOYAD *</label>
+      <input type="text" id="full_name" placeholder="Adınız Soyadınız" autocomplete="name">
+    </div>
+    <div class="field">
+      <label class="lbl">KATILIM DURUMUNUZ *</label>
+      <div class="rg">
+        <div class="ro"><input type="radio" name="rsvp_status" id="att" value="attending"><label for="att">✓ Geliyor</label></div>
+        <div class="ro"><input type="radio" name="rsvp_status" id="dec" value="declined"><label for="dec">✗ Gelmiyor</label></div>
+        <div class="ro"><input type="radio" name="rsvp_status" id="mbe" value="maybe"><label for="mbe">? Belki</label></div>
+      </div>
+    </div>
+    <div class="cpn" id="cpn">
+      <label class="lbl">YANINDA KAÇ KİŞİ GELİYOR? (+1)</label>
+      <input type="number" id="companion_count" min="0" max="20" value="0">
+    </div>
+    <div class="field">
+      <label class="lbl">TELEFON (opsiyonel)</label>
+      <input type="tel" id="phone" placeholder="05XX XXX XX XX" autocomplete="tel">
+    </div>
+    <button class="btn" id="submit-btn" onclick="submitRsvp()">KATILIMIMI BİLDİR</button>`;
+
+  document.querySelectorAll('[name=rsvp_status]').forEach(r => {
+    r.addEventListener('change', () => {
+      const s = document.querySelector('[name=rsvp_status]:checked')?.value;
+      document.getElementById('cpn').classList.toggle('show', s === 'attending' || s === 'maybe');
+    });
+  });
+}
+
+async function submitRsvp() {
+  const fullName = document.getElementById('full_name').value.trim();
+  const rsvpStatus = document.querySelector('[name=rsvp_status]:checked')?.value || '';
+  const companionCount = Math.max(0, parseInt(document.getElementById('companion_count').value || '0', 10) || 0);
+  const phone = document.getElementById('phone').value.trim();
+  const errBox = document.getElementById('err-box');
+
+  if (!fullName) {
+    errBox.innerHTML = '<div class="err">Ad soyad alanı zorunludur.</div>';
+    return;
+  }
+  if (!['attending', 'declined', 'maybe'].includes(rsvpStatus)) {
+    errBox.innerHTML = '<div class="err">Lütfen bir katılım durumu seçin.</div>';
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Gönderiliyor…';
+  errBox.innerHTML = '';
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/guests`, {
+    method: 'POST',
+    headers: dbHeaders(),
+    body: JSON.stringify({
+      wedding_id: wid,
+      full_name: fullName,
+      phone: phone || null,
+      rsvp_status: rsvpStatus,
+      companion_count: companionCount,
+    }),
+  });
+
+  if (!res.ok) {
+    btn.disabled = false;
+    btn.textContent = 'KATILIMIMI BİLDİR';
+    errBox.innerHTML = '<div class="err">Bir hata oluştu. Lütfen tekrar deneyin.</div>';
+    return;
+  }
+
+  showSuccess(fullName, rsvpStatus);
+}
+
+async function init() {
+  if (!UUID_RE.test(wid)) {
+    showError('Geçersiz davet bağlantısı.');
+    return;
+  }
+
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/weddings?id=eq.${wid}&select=id,title,wedding_date&limit=1`,
+    { headers: dbHeaders() }
+  );
+
+  if (!res.ok) {
+    showError('Bir hata oluştu.');
+    return;
+  }
+
+  const data = await res.json();
+  if (!data.length) {
+    showError('Düğün bulunamadı.');
+    return;
+  }
+
+  showForm(data[0]);
+}
+
+init();
+</script>
+</body>
+</html>
