@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/prefs/wedding_prefs.dart';
@@ -266,8 +267,9 @@ class _StepScaffold extends StatelessWidget {
                   subtitle,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.dmSans(
-                    color: AppTheme.textMuted,
-                    fontSize: 15,
+                    color: const Color(0xFF5C5E60),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
                     height: 1.6,
                   ),
                 ),
@@ -312,14 +314,77 @@ class _Step1 extends StatelessWidget {
 
   const _Step1({required this.onNext});
 
+  static const _svgPath =
+      'assets/images/onboarding/two-interlocking-wedding-rings--one-set-with-a-dia.svg';
+
   @override
   Widget build(BuildContext context) {
-    return _StepScaffold(
-      title: 'Sadece\nSizin İçin\nHazırlandı',
-      subtitle:
-          'Bu alan yalnızca size özel.\nDüğününüzün her detayı,\ntam istediğiniz gibi.',
-      buttonLabel: 'BAŞLA',
-      onNext: onNext,
+    return Column(
+      children: [
+        // ── Üst blok: başlık + alt yazı ──────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 48, 28, 0),
+          child: Column(
+            children: [
+              Text(
+                'Senin İçin,\nSana Özel',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.syne(
+                  color: AppTheme.textDark,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Hoş geldin! Düğününün her detayı,\ntek bir yerde, kontrol tamamen sende.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(
+                  color: const Color(0xFF5C5E60),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // ── İllüstrasyon: kalan alanın ortasında ─────────────────────────
+        Expanded(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: SvgPicture.asset(
+                _svgPath,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+        // ── Buton: en altta sabit ─────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 0, 28, 36),
+          child: FilledButton(
+            onPressed: onNext,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              minimumSize: const Size(double.infinity, 54),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+            ),
+            child: Text(
+              'BAŞLA',
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -366,8 +431,8 @@ class _Step2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StepScaffold(
-      title: 'O Özel Gün\nNe Zaman?',
-      subtitle: 'Tarihinizi girin, size özel\ngeri sayım başlasın.',
+      title: 'Büyük Gün\nNe Zaman?',
+      subtitle: 'Tarihini gir,\ngeri sayım başlasın.',
       buttonLabel: 'DEVAM',
       onNext: onNext,
       content: Column(
@@ -375,14 +440,14 @@ class _Step2 extends StatelessWidget {
         children: [
           _OnboardingTextField(
             controller: brideController,
-            hint: 'Gelin adı',
+            hint: 'Senin adın',
           ),
           const SizedBox(height: 12),
           _OnboardingTextField(
             controller: groomController,
-            hint: 'Damat adı',
+            hint: 'Partnerinin adı',
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           GestureDetector(
             onTap: () => _pick(context),
             child: ClipRRect(
@@ -390,8 +455,6 @@ class _Step2 extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 18),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.28),
                     borderRadius: BorderRadius.circular(16),
@@ -399,26 +462,25 @@ class _Step2 extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.50),
                         width: 1.5),
                   ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 16),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
                           selectedDate == null
-                              ? 'Tarih seçin'
+                              ? 'Tarih seç'
                               : _formatDate(selectedDate!),
-                          textAlign: TextAlign.center,
-                          style: selectedDate == null
-                              ? GoogleFonts.dmSans(
-                                  color: AppTheme.textMuted, fontSize: 17)
-                              : GoogleFonts.syne(
-                                  color: AppTheme.primary,
-                                  fontSize: 21,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                          style: GoogleFonts.dmSans(
+                            color: selectedDate == null
+                                ? AppTheme.textMuted
+                                : AppTheme.textDark,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
-                      AppIcon(AppIcons.arrowRight,
-                          size: 14,
+                      AppIcon(AppIcons.calendar,
+                          size: 16,
                           color: AppTheme.textMuted.withValues(alpha: 0.7)),
                     ],
                   ),
@@ -498,8 +560,8 @@ class _Step3 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StepScaffold(
-      title: 'Bütçeniz\nSizin Elinizde',
-      subtitle: 'Size özel takip — hiçbir kuruş\ngözden kaçmasın.',
+      title: 'Bütçe\nElinin Altında',
+      subtitle: 'Hiçbir kuruşu gözden kaçırma.',
       buttonLabel: 'DEVAM',
       onNext: onNext,
       content: Column(
@@ -640,8 +702,8 @@ class _Step4State extends State<_Step4> {
   @override
   Widget build(BuildContext context) {
     return _StepScaffold(
-      title: 'Misafir\nListeniz',
-      subtitle: 'Sevdiklerinizi ekleyin,\ngeri kalanını sizin için halledelim.',
+      title: 'Misafir\nListen',
+      subtitle: 'Kaç kişiyi ağırlamayı\nplanlıyorsun?',
       buttonLabel: 'TAMAMLA',
       onNext: () {
         _commitText();
@@ -660,28 +722,53 @@ class _Step4State extends State<_Step4> {
                 },
               ),
               const SizedBox(width: 20),
-              SizedBox(
-                width: 120,
-                child: TextField(
-                  controller: _ctrl,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.syne(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textDark,
-                    height: 1,
+              IntrinsicWidth(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 80,
+                    maxWidth: 180,
                   ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.28),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.50),
+                              width: 1.5),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        child: TextField(
+                          controller: _ctrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly
+                          ],
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.syne(
+                            fontSize: 44,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.textDark,
+                            height: 1,
+                          ),
+                          decoration: const InputDecoration(
+                            filled: false,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onSubmitted: (_) => _commitText(),
+                          onEditingComplete: _commitText,
+                        ),
+                      ),
+                    ),
                   ),
-                  onSubmitted: (_) => _commitText(),
-                  onEditingComplete: _commitText,
                 ),
               ),
               const SizedBox(width: 20),
@@ -752,6 +839,9 @@ class _Step5 extends StatelessWidget {
           'Beğendiğin fotoğrafları ve notları moodboard\'una ekle,\ndüğün tarzını şimdiden yarat.',
       buttonLabel: 'DEVAM',
       onNext: onNext,
+      content: const _PreviewCard(
+        assetPath: 'assets/onboarding/moodboard_preview.png',
+      ),
     );
   }
 }
@@ -771,6 +861,43 @@ class _Step6 extends StatelessWidget {
           'Vücut tipine ve tarzına en uygun gelinlik modellerini keşfet,\nhayalindeki görünümü bul.',
       buttonLabel: 'BAŞLAYALIM',
       onNext: onFinish,
+      content: const _PreviewCard(
+        assetPath: 'assets/onboarding/gelinlik_rehberi_preview.png',
+      ),
+    );
+  }
+}
+
+// ── Önizleme Kart ─────────────────────────────────────────────────────────
+
+class _PreviewCard extends StatelessWidget {
+  final String assetPath;
+
+  const _PreviewCard({required this.assetPath});
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      widthFactor: 0.85,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primary.withValues(alpha: 0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            assetPath,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
     );
   }
 }
