@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_icon.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/guest.dart';
-import '../../data/services/guest_service.dart';
 
 const _kAccent = Color(0xFF7056C8);
 
@@ -16,19 +15,19 @@ class AddGuestSheet extends StatefulWidget {
 
   const AddGuestSheet({super.key, required this.weddingId, this.guest});
 
-  /// Returns true if something was saved or deleted.
-  static Future<bool> show(
+  /// Returns the form data on save, or a deletedId on delete, or nulls on cancel.
+  static Future<({Guest? guest, String? deletedId})> show(
     BuildContext context, {
     required String weddingId,
     Guest? guest,
   }) async {
-    final result = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<({Guest? guest, String? deletedId})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AddGuestSheet(weddingId: weddingId, guest: guest),
     );
-    return result == true;
+    return result ?? (guest: null, deletedId: null);
   }
 
   @override
@@ -44,8 +43,6 @@ class _AddGuestSheetState extends State<AddGuestSheet> {
   late RsvpStatus _rsvpStatus;
   GuestSide? _side;
   int _companionCount = 0;
-  bool _saving = false;
-  String? _error;
 
   bool get _isEditing => widget.guest != null;
 
@@ -73,55 +70,43 @@ class _AddGuestSheetState extends State<AddGuestSheet> {
     super.dispose();
   }
 
-  Future<void> _save() async {
+  void _save() {
     if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      final now = DateTime.now();
-      final phone = _phoneController.text.trim();
-      final group = _groupController.text.trim();
+    final now = DateTime.now();
+    final phone = _phoneController.text.trim();
+    final group = _groupController.text.trim();
 
-      if (_isEditing) {
-        final updated = Guest(
-          id: widget.guest!.id,
-          weddingId: widget.guest!.weddingId,
-          fullName: _nameController.text.trim(),
-          phone: phone.isEmpty ? null : phone,
-          side: _side,
-          rsvpStatus: _rsvpStatus,
-          companionCount: _companionCount,
-          groupLabel: group.isEmpty ? null : group,
-          notes: widget.guest!.notes,
-          createdAt: widget.guest!.createdAt,
-          updatedAt: now,
-        );
-        await GuestService().update(updated);
-      } else {
-        final guest = Guest(
-          id: '',
-          weddingId: widget.weddingId,
-          fullName: _nameController.text.trim(),
-          phone: phone.isEmpty ? null : phone,
-          side: _side,
-          rsvpStatus: _rsvpStatus,
-          companionCount: _companionCount,
-          groupLabel: group.isEmpty ? null : group,
-          createdAt: now,
-          updatedAt: now,
-        );
-        await GuestService().create(guest);
-      }
-      if (mounted) Navigator.pop(context, true);
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-          _error = 'Kaydedilemedi. Lütfen tekrar deneyin.';
-        });
-      }
+    final Guest result;
+    if (_isEditing) {
+      result = Guest(
+        id: widget.guest!.id,
+        weddingId: widget.guest!.weddingId,
+        fullName: _nameController.text.trim(),
+        phone: phone.isEmpty ? null : phone,
+        side: _side,
+        rsvpStatus: _rsvpStatus,
+        companionCount: _companionCount,
+        groupLabel: group.isEmpty ? null : group,
+        notes: widget.guest!.notes,
+        createdAt: widget.guest!.createdAt,
+        updatedAt: now,
+      );
+    } else {
+      result = Guest(
+        id: '',
+        weddingId: widget.weddingId,
+        fullName: _nameController.text.trim(),
+        phone: phone.isEmpty ? null : phone,
+        side: _side,
+        rsvpStatus: _rsvpStatus,
+        companionCount: _companionCount,
+        groupLabel: group.isEmpty ? null : group,
+        createdAt: now,
+        updatedAt: now,
+      );
+    }
+    if (mounted) {
+      Navigator.pop(context, (guest: result, deletedId: null as String?));
     }
   }
 
@@ -155,22 +140,7 @@ class _AddGuestSheetState extends State<AddGuestSheet> {
       ),
     );
     if (confirm != true || !mounted) return;
-
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      await GuestService().delete(widget.guest!.id);
-      if (mounted) Navigator.pop(context, true);
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-          _error = 'Silinemedi. Lütfen tekrar deneyin.';
-        });
-      }
-    }
+    Navigator.pop(context, (guest: null as Guest?, deletedId: widget.guest!.id));
   }
 
   @override
@@ -221,7 +191,7 @@ class _AddGuestSheetState extends State<AddGuestSheet> {
                       child: IconButton(
                         icon: AppIcon(AppIcons.trash, color: const Color(0xFFB00020), size: 22),
                         tooltip: 'Sil',
-                        onPressed: _saving ? null : _delete,
+                        onPressed: _delete,
                         padding: const EdgeInsets.all(6),
                         constraints: const BoxConstraints(
                             minWidth: 36, minHeight: 36),
@@ -309,25 +279,16 @@ class _AddGuestSheetState extends State<AddGuestSheet> {
                 controller: _groupController,
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.done,
-                onEditingComplete: _saving ? null : _save,
+                onEditingComplete: _save,
                 style:
                     GoogleFonts.dmSans(fontSize: 14, color: AppTheme.textDark),
                 decoration: _dec('Örn: Aile, Üniversite'),
               ),
 
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: GoogleFonts.dmSans(
-                      color: const Color(0xFFB00020), fontSize: 13),
-                ),
-              ],
-
               const SizedBox(height: 24),
 
               FilledButton(
-                onPressed: _saving ? null : _save,
+                onPressed: _save,
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: AppTheme.primary,
@@ -335,21 +296,14 @@ class _AddGuestSheetState extends State<AddGuestSheet> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
-                child: _saving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppTheme.primary),
-                      )
-                    : Text(
-                        _isEditing ? 'Güncelle' : 'Kaydet',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
+                child: Text(
+                  _isEditing ? 'Güncelle' : 'Kaydet',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
               ),
             ],
           ),

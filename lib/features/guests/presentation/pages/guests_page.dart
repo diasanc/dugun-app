@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/services/wedding_service.dart';
 import '../../../../core/theme/app_icon.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/glass_card.dart';
 import '../../data/models/guest.dart';
-import '../../data/services/guest_service.dart';
+import '../controllers/guest_list_controller.dart';
 import '../widgets/add_guest_sheet.dart';
 import '../widgets/rsvp_link_sheet.dart';
 
@@ -20,13 +19,7 @@ class GuestsPage extends StatefulWidget {
 }
 
 class _GuestsPageState extends State<GuestsPage> {
-  final _weddingService = WeddingService();
-  final _guestService = GuestService();
-
-  String? _weddingId;
-  List<Guest> _guests = [];
-  bool _loading = true;
-  String? _error;
+  late final GuestListController _controller;
 
   RsvpStatus? _filterStatus;
   String _search = '';
@@ -35,43 +28,19 @@ class _GuestsPageState extends State<GuestsPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _controller = GuestListController(userId: widget.userId);
+    _controller.load();
   }
 
   @override
   void dispose() {
+    _controller.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    if (!mounted) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final wedding = await _weddingService.getOrCreateWedding(widget.userId);
-      final guests = await _guestService.fetchByWedding(wedding.id);
-      if (mounted) {
-        setState(() {
-          _weddingId = wedding.id;
-          _guests = guests;
-          _loading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _error = 'Veriler yüklenemedi. Lütfen tekrar deneyin.';
-          _loading = false;
-        });
-      }
-    }
-  }
-
   List<Guest> get _filtered {
-    var list = _guests;
+    var list = _controller.guests;
     if (_filterStatus != null) {
       list = list.where((g) => g.rsvpStatus == _filterStatus).toList();
     }
@@ -82,46 +51,42 @@ class _GuestsPageState extends State<GuestsPage> {
     return list;
   }
 
-  int get _totalAttendingWithCompanions => _guests
+  int get _totalAttendingWithCompanions => _controller.guests
       .where((g) => g.rsvpStatus == RsvpStatus.attending)
       .fold(0, (s, g) => s + 1 + g.companionCount);
 
   Future<void> _openAddSheet() async {
-    final weddingId = _weddingId;
+    final weddingId = _controller.weddingId;
     if (weddingId == null) return;
-    final changed = await AddGuestSheet.show(context, weddingId: weddingId);
-    if (changed) _load();
+    final result = await AddGuestSheet.show(context, weddingId: weddingId);
+    if (result.guest != null) await _controller.addGuest(result.guest!);
   }
 
   Future<void> _openEditSheet(Guest guest) async {
-    final weddingId = _weddingId;
+    final weddingId = _controller.weddingId;
     if (weddingId == null) return;
-    final changed =
+    final result =
         await AddGuestSheet.show(context, weddingId: weddingId, guest: guest);
-    if (changed) _load();
+    if (result.guest != null) {
+      await _controller.updateGuest(result.guest!);
+    } else if (result.deletedId != null) {
+      await _controller.removeGuest(result.deletedId!);
+    }
   }
 
   Future<void> _deleteGuest(Guest guest) async {
-    setState(() {
-      _guests = List.from(_guests)..removeWhere((g) => g.id == guest.id);
-    });
-    try {
-      await _guestService.delete(guest.id);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Silinemedi. Tekrar deneyin.'),
-            backgroundColor: Color(0xFFB00020),
-          ),
-        );
-        _load();
-      }
-    }
+    await _controller.removeGuest(guest.id);
   }
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) => _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return AppBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -142,7 +107,7 @@ class _GuestsPageState extends State<GuestsPage> {
             onPressed: () => Navigator.pop(context),
           ),
           actions: [
-            if (_weddingId != null && !_loading)
+            if (_controller.weddingId != null && !_controller.loading)
               IconButton(
                 icon: AppIcon(AppIcons.userAdd, size: 20, color: AppTheme.primary),
                 tooltip: 'Davetli Ekle',
@@ -150,13 +115,13 @@ class _GuestsPageState extends State<GuestsPage> {
               ),
           ],
         ),
-        floatingActionButton: _weddingId != null && !_loading
+        floatingActionButton: _controller.weddingId != null && !_controller.loading
             ? Padding(
                 padding: const EdgeInsets.only(bottom: 80),
                 child: FloatingActionButton(
                   heroTag: 'guests_fab',
                   onPressed: () =>
-                      RsvpLinkSheet.show(context, weddingId: _weddingId!),
+                      RsvpLinkSheet.show(context, weddingId: _controller.weddingId!),
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
                   elevation: 3,
@@ -164,14 +129,14 @@ class _GuestsPageState extends State<GuestsPage> {
                 ),
               )
             : null,
-        body: _loading
+        body: _controller.loading
             ? const Center(
                 child: CircularProgressIndicator(
                     color: AppTheme.primary, strokeWidth: 2))
-            : _error != null
+            : _controller.error != null
                 ? _buildError()
                 : RefreshIndicator(
-                    onRefresh: _load,
+                    onRefresh: _controller.load,
                     color: AppTheme.primary,
                     child: CustomScrollView(
                       slivers: [
@@ -230,12 +195,12 @@ class _GuestsPageState extends State<GuestsPage> {
         children: [
           AppIcon(AppIcons.danger, color: AppTheme.textMuted, size: 48),
           const SizedBox(height: 12),
-          Text(_error!,
+          Text(_controller.error!,
               style: GoogleFonts.dmSans(
                   color: AppTheme.textMuted, fontSize: 14)),
           const SizedBox(height: 16),
           TextButton(
-            onPressed: _load,
+            onPressed: _controller.load,
             child: Text('Tekrar Dene',
                 style: GoogleFonts.dmSans(color: AppTheme.primary)),
           ),
@@ -245,13 +210,13 @@ class _GuestsPageState extends State<GuestsPage> {
   }
 
   Widget _buildHeader() {
-    final total = _guests.length;
+    final total = _controller.guests.length;
     final attending =
-        _guests.where((g) => g.rsvpStatus == RsvpStatus.attending).length;
+        _controller.guests.where((g) => g.rsvpStatus == RsvpStatus.attending).length;
     final pending =
-        _guests.where((g) => g.rsvpStatus == RsvpStatus.pending).length;
+        _controller.guests.where((g) => g.rsvpStatus == RsvpStatus.pending).length;
     final declined =
-        _guests.where((g) => g.rsvpStatus == RsvpStatus.declined).length;
+        _controller.guests.where((g) => g.rsvpStatus == RsvpStatus.declined).length;
     final withCompanions = _totalAttendingWithCompanions;
 
     return GlassCard(
@@ -383,7 +348,7 @@ class _GuestsPageState extends State<GuestsPage> {
 
   Widget _buildFilterChips() {
     final filters = [
-      (null, 'Tümü (${_guests.length})'),
+      (null, 'Tümü (${_controller.guests.length})'),
       (RsvpStatus.attending, 'Onaylı'),
       (RsvpStatus.pending, 'Bekliyor'),
       (RsvpStatus.maybe, 'Belki'),
