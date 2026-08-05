@@ -428,7 +428,7 @@ class _BudgetPageState extends State<BudgetPage> {
       child: Center(
         child: Column(
           children: [
-            AppIcon(AppIcons.receipt, size: 52, color: AppTheme.border),
+            AppIcon(AppIcons.receipt, size: 52, color: AppTheme.textMuted),
             const SizedBox(height: 16),
             Text(
               'Henüz gider kalemi yok',
@@ -443,7 +443,7 @@ class _BudgetPageState extends State<BudgetPage> {
               'Sağ alttaki + butonuyla harcama ekleyebilirsiniz.',
               textAlign: TextAlign.center,
               style: GoogleFonts.dmSans(
-                  fontSize: 13, color: AppTheme.border),
+                  fontSize: 13, color: AppTheme.textMuted),
             ),
           ],
         ),

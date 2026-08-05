@@ -933,13 +933,17 @@ class _EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF0F3),
-                borderRadius: BorderRadius.circular(18),
+                color: Colors.white.withValues(alpha: 0.30),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  width: 1,
+                ),
               ),
-              child: AppIcon(AppIcons.gallery, size: 32, color: AppTheme.primary),
+              child: AppIcon(AppIcons.gallery, size: 26, color: AppTheme.primary),
             ),
             const SizedBox(height: 18),
             Text(

@@ -33,7 +33,7 @@ class GuestService {
         .from(_table)
         .stream(primaryKey: ['id'])
         .eq('wedding_id', weddingId)
-        .order('full_name')
+        .order('full_name', ascending: true)
         .map((rows) => rows.map(Guest.fromJson).toList());
   }
 
