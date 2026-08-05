@@ -115,7 +115,6 @@ function showSuccess(fullName,status){
   const msgs={
     attending:'Düğünümüzde sizi görmek için sabırsızlanıyoruz! 🎉',
     declined:'Anlayışınız için teşekkür ederiz.',
-    maybe:'Yanıtınızı ilettiğiniz için teşekkür ederiz.',
   };
   root.innerHTML=`<div class="brand"><div class="brand-name">LIERA</div></div>
     <div class="ok-circle" style="font-size:56px;line-height:1">🎉</div>
@@ -149,7 +148,6 @@ function showForm(wedding){
         <div class="rg">
           <div class="ro"><input type="radio" name="rsvp_status" id="att" value="attending"><label for="att">✓ Geliyor</label></div>
           <div class="ro"><input type="radio" name="rsvp_status" id="dec" value="declined"><label for="dec">✗ Gelmiyor</label></div>
-          <div class="ro"><input type="radio" name="rsvp_status" id="mbe" value="maybe"><label for="mbe">? Belki</label></div>
         </div>
       </div>
       <div class="cpn" id="cpn">
@@ -167,7 +165,7 @@ function showForm(wedding){
   document.querySelectorAll('[name=rsvp_status]').forEach(r=>{
     r.addEventListener('change',()=>{
       const s=document.querySelector('[name=rsvp_status]:checked')?.value;
-      document.getElementById('cpn').classList.toggle('show',s==='attending'||s==='maybe');
+      document.getElementById('cpn').classList.toggle('show',s==='attending');
     });
   });
 }
@@ -180,7 +178,7 @@ async function submitRsvp(){
   const errBox=document.getElementById('err-box');
  
   if(!fullName){errBox.innerHTML='<div class="err">Ad soyad alanı zorunludur.</div>';return;}
-  if(!['attending','declined','maybe'].includes(rsvpStatus)){errBox.innerHTML='<div class="err">Lütfen bir katılım durumu seçin.</div>';return;}
+  if(!['attending','declined'].includes(rsvpStatus)){errBox.innerHTML='<div class="err">Lütfen bir katılım durumu seçin.</div>';return;}
  
   const btn=document.getElementById('submit-btn');
   btn.disabled=true;btn.textContent='Gönderiliyor…';errBox.innerHTML='';
