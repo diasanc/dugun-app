@@ -100,17 +100,17 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(height: 8),
                         Text(
                           'Hesap\nOluştur',
-                          style: GoogleFonts.playfairDisplay(
+                          style: GoogleFonts.syne(
                             color: AppTheme.textDark,
                             fontSize: 38,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             height: 1.15,
                           ),
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Planlamaya hemen başlayın.',
-                          style: GoogleFonts.inter(
+                          'Planlamaya hemen başla!',
+                          style: GoogleFonts.dmSans(
                             color: AppTheme.textMuted,
                             fontSize: 15,
                           ),

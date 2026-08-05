@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/prefs/wedding_prefs.dart';
 import '../../../../core/theme/app_icon.dart';
@@ -58,11 +57,6 @@ class _DashboardPageState extends State<DashboardPage> {
   int _totalGuests = 0;
   List<MoodboardItem> _moodboardItems = [];
 
-  bool _visitedBridalGuide = false;
-  bool _visitedMoodboard = false;
-  bool _visitedBudget = false;
-  bool _visitedTimeline = false;
-
   @override
   void initState() {
     super.initState();
@@ -71,7 +65,6 @@ class _DashboardPageState extends State<DashboardPage> {
     _loadBudget();
     _loadGuests();
     _loadMoodboard();
-    _loadVisitedModules();
   }
 
   @override
@@ -144,22 +137,6 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (_) {}
   }
 
-  Future<void> _loadVisitedModules() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() {
-      _visitedBridalGuide = prefs.getBool('visited_bridal_guide') ?? false;
-      _visitedMoodboard = prefs.getBool('visited_moodboard') ?? false;
-      _visitedBudget = prefs.getBool('visited_budget') ?? false;
-      _visitedTimeline = prefs.getBool('visited_timeline') ?? false;
-    });
-  }
-
-  Future<void> _markVisited(String key) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, true);
-    if (mounted) _loadVisitedModules();
-  }
 
   Future<void> _openEditSheet(TimelineTask task) async {
     final userId = widget.authController.user?.id ?? '';
@@ -188,20 +165,11 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  void _goToBridalGuide() {
-    _markVisited('visited_bridal_guide');
-    widget.onNavTap(4);
-  }
+  void _goToBridalGuide() => widget.onNavTap(4);
 
-  void _goToMoodboard() {
-    _markVisited('visited_moodboard');
-    widget.onNavTap(3);
-  }
+  void _goToMoodboard() => widget.onNavTap(3);
 
-  void _goToBudget() {
-    _markVisited('visited_budget');
-    widget.onNavTap(2);
-  }
+  void _goToBudget() => widget.onNavTap(2);
 
   void _goToGuests() {
     final userId = widget.authController.user?.id;
@@ -211,43 +179,10 @@ class _DashboardPageState extends State<DashboardPage> {
         .then((_) => _loadGuests());
   }
 
-  void _goToTimeline() {
-    _markVisited('visited_timeline');
-    widget.onNavTap(1);
-  }
-
-  ({String icon, String title, String subtitle, VoidCallback onTap})?
-      get _nextSuggestion {
-    if (!_visitedBridalGuide) return (
-      icon: AppIcons.hanger,
-      title: 'Gelinlik Rehberi',
-      subtitle: 'Vücut tipine göre gelinlik önerilerini keşfet',
-      onTap: _goToBridalGuide,
-    );
-    if (!_visitedMoodboard || _moodboardItems.isEmpty) return (
-      icon: AppIcons.imageSparkle,
-      title: 'İlham Panosu',
-      subtitle: 'Düğün temanı için ilk ilhamını ekle',
-      onTap: _goToMoodboard,
-    );
-    if (!_visitedBudget || _totalBudget == null) return (
-      icon: AppIcons.wallet,
-      title: 'Bütçe Planı',
-      subtitle: 'Bütçeni belirle ve harcamalarını takip et',
-      onTap: _goToBudget,
-    );
-    if (!_visitedTimeline || widget.timelineController.totalTasks == 0) return (
-      icon: AppIcons.calendar,
-      title: 'Planlama Takvimi',
-      subtitle: 'İlk görevini ekleyerek planlamaya başla',
-      onTap: _goToTimeline,
-    );
-    return null;
-  }
+  void _goToTimeline() => widget.onNavTap(1);
 
   @override
   Widget build(BuildContext context) {
-    final suggestion = _nextSuggestion;
     return AppBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -274,15 +209,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   weddingDate: _weddingDate,
                   onSetDate: _pickWeddingDate,
                 ),
-                if (suggestion != null) ...[
-                  const SizedBox(height: 12),
-                  _NextStepCard(
-                    icon: suggestion.icon,
-                    title: suggestion.title,
-                    subtitle: suggestion.subtitle,
-                    onTap: suggestion.onTap,
-                  ),
-                ],
                 const SizedBox(height: 20),
                 _QuickAccessGrid(
                   moodboardCount: _moodboardItems.length,
@@ -619,83 +545,6 @@ class _CountdownCard extends StatelessWidget {
       'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
-  }
-}
-
-// ── Sıradaki Adım ─────────────────────────────────────────────────────────
-
-class _NextStepCard extends StatelessWidget {
-  final String icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _NextStepCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      onTap: onTap,
-      tint: AppTheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: AppIcon(icon, size: 18, color: AppTheme.primary),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Sıradaki adım',
-                    style: GoogleFonts.syne(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primary.withValues(alpha: 0.65),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    title,
-                    style: GoogleFonts.syne(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textDark,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.syne(
-                      fontSize: 11,
-                      color: AppTheme.textMuted,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            AppIcon(AppIcons.arrowRight, size: 16,
-                color: AppTheme.primary.withValues(alpha: 0.55)),
-          ],
-        ),
-      ),
-    );
   }
 }
 

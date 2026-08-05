@@ -35,11 +35,12 @@ class WeddingService {
   /// hicbiri yoksa yeni olusturur. Sahip olunan dugunde budget null ise
   /// SharedPreferences'tan senkronize eder.
   Future<WeddingRecord> getOrCreateWedding(String userId) async {
-    // 1. Kullanicinin sahip oldugu dugun
+    // 1. Kullanicinin sahip oldugu dugun (limit 1: tekrar eden kayit varsa ilkini al)
     var row = await _client
         .from(_table)
         .select('id, total_budget, title')
         .eq('owner_id', userId)
+        .limit(1)
         .maybeSingle();
 
     if (row != null) {
@@ -49,10 +50,8 @@ class WeddingService {
         final amount = _budgetFromString(await WeddingPrefs.getBudgetString());
         if (amount != null) updates['total_budget'] = amount;
       }
-      if (record.title == null) {
-        final t = await WeddingPrefs.getWeddingTitle();
-        if (t != null) updates['title'] = t;
-      }
+      final t = await WeddingPrefs.getWeddingTitle();
+      if (t != null) updates['title'] = t;
       if (updates.isNotEmpty) {
         await _client.from(_table).update(updates).eq('owner_id', userId);
         record = WeddingRecord(
@@ -81,14 +80,17 @@ class WeddingService {
       if (weddingRow != null) return WeddingRecord.fromJson(weddingRow);
     }
 
-    // 3. Hicbir dugun yoksa yeni olustur
+    // 3. Hicbir dugun yoksa yeni olustur.
+    // INSERT ve SELECT ayri isteklerde yapiliyor: INSERT transaction'i kapaninca
+    // trigger commit olur, sonraki SELECT is_wedding_member'i dogru gorur.
     final insertData = <String, dynamic>{'owner_id': userId};
     final prefTitle = await WeddingPrefs.getWeddingTitle();
     if (prefTitle != null) insertData['title'] = prefTitle;
+    await _client.from(_table).insert(insertData);
     final newRow = await _client
         .from(_table)
-        .insert(insertData)
         .select('id, total_budget, title')
+        .eq('owner_id', userId)
         .single();
     return WeddingRecord.fromJson(newRow);
   }

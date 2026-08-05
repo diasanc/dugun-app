@@ -67,7 +67,8 @@ class _BudgetPageState extends State<BudgetPage> {
           _loading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('BudgetPage._load error: $e\n$st');
       if (mounted) {
         setState(() {
           _error = 'Veriler yüklenemedi. Lütfen tekrar deneyin.';

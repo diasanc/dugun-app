@@ -191,17 +191,31 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
             ),
           ),
-          TextButton(
-            onPressed: _skip,
-            style: TextButton.styleFrom(
-              foregroundColor: AppTheme.textMuted,
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          GestureDetector(
+            onTap: _skip,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    color: Colors.white.withValues(alpha: 0.30),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.50),
+                        width: 1),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Atla',
+                    style: GoogleFonts.dmSans(
+                        fontSize: 15, color: AppTheme.textMuted),
+                  ),
+                ),
+              ),
             ),
-            child: Text('Atla',
-                style: GoogleFonts.dmSans(
-                    fontSize: 13, color: AppTheme.textMuted)),
           ),
         ],
       ),
@@ -331,7 +345,7 @@ class _Step1 extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.syne(
                   color: AppTheme.textDark,
-                  fontSize: 30,
+                  fontSize: 36,
                   fontWeight: FontWeight.w800,
                   height: 1.15,
                 ),
@@ -856,9 +870,9 @@ class _Step6 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StepScaffold(
-      title: 'Kusursuz\nGelinlik\nRehberi',
+      title: 'Gelinlik\nRehberi',
       subtitle:
-          'Vücut tipine ve tarzına en uygun gelinlik modellerini keşfet,\nhayalindeki görünümü bul.',
+          'Yaka, etek, kol ve kumaş seçeneklerini tek tek incele,\ntarzını netleştir.',
       buttonLabel: 'BAŞLAYALIM',
       onNext: onFinish,
       content: const _PreviewCard(
